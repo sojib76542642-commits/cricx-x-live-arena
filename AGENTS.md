@@ -28,3 +28,12 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules (Cricx X)
+
+- Public pages read data through `createServerFn` in `src/lib/public-data.functions.ts` using the publishable key; RLS limits anon reads to published/enabled rows — never use the admin client for public reads.
+- Admin writes go from the browser Supabase client and are enforced by RLS via `public.has_role(auth.uid(),'admin')`; the admin route's role check is UX only.
+- Third-party API keys (e.g. `CRICAPI_KEY`) are read only inside server functions; no generic URL proxy exists — do not add one.
+- Time/zone-dependent text renders via `LocalTime`/`useHydrated` to avoid SSR hydration mismatches.
+- Playback engine choice lives in `src/lib/streams.ts` (`playbackModeFor`); `VideoPlayer` lazy-imports hls.js and shaka-player client-side.
+- Keep the original `cx-*` class design system in `src/styles.css`; new UI should reuse those classes and CSS variables.

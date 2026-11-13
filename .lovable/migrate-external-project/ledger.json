@@ -1,13 +1,79 @@
 [
-  {"capability":"code: pages Home, Watch, Sports, Channel, Backups, Admin","source":"src/pages/*","outcome":"migrate to TanStack Start routes, keep design","status":"in_progress","next_action":"recreate routes"},
-  {"capability":"design: green CRICX theme (src/styles/design.css)","source":"src/styles/design.css","outcome":"migrate into src/styles.css; add missing classes","status":"in_progress","next_action":"merge css"},
-  {"capability":"schema: tournaments, matches, stream_sources, tournament_stream_sources, channels, channel_sources","source":"inferred from Supabase queries (no SQL in archive)","outcome":"migrate to Lovable Cloud with RLS","status":"in_progress","next_action":"migration"},
-  {"capability":"records","source":"existing Supabase project (no export attached)","outcome":"migrate","status":"pending","next_action":"user exports CSV per table"},
-  {"capability":"auth identities (admin accounts)","source":"Supabase auth email/password","outcome":"migrate: admin re-creates account; grant admin role","status":"pending","next_action":"user signs up on admin page, then admin role granted"},
-  {"capability":"authorization: admin-only writes","source":"none (unprotected)","outcome":"user_roles + has_role + RLS","status":"in_progress","next_action":"migration"},
-  {"capability":"external provider: CricAPI currentMatches","source":"api/Proxy.js (placeholder key) + edge fn Cricket-Sync (source missing)","outcome":"admin-only server function with CRICAPI_KEY secret","status":"in_progress","next_action":"implement; user supplies key"},
-  {"capability":"public endpoint /api/proxy (stream proxy)","source":"VideoPlayer.tsx","outcome":"removed: unrestricted proxy not allowed per user","status":"accepted","next_action":"none"},
-  {"capability":"video: hls.js + Shaka DASH/DRM + embed","source":"VideoPlayer.tsx","outcome":"migrate + fix","status":"in_progress","next_action":"rewrite player"},
-  {"capability":"hosting: Vercel SPA","source":"vercel.json","outcome":"replaced by Lovable hosting (TanStack Start)","status":"in_progress","next_action":"publish"},
-  {"capability":"verification","source":"-","outcome":"browser tests","status":"pending","next_action":"test"}
+ {
+  "capability": "code: pages Home, Watch, Sports, Channel, Backups, Admin",
+  "source": "src/pages/*",
+  "outcome": "migrate to TanStack Start routes, keep design",
+  "status": "verified",
+  "next_action": "recreate routes"
+ },
+ {
+  "capability": "design: green CRICX theme (src/styles/design.css)",
+  "source": "src/styles/design.css",
+  "outcome": "migrate into src/styles.css; add missing classes",
+  "status": "verified",
+  "next_action": "merge css"
+ },
+ {
+  "capability": "schema: tournaments, matches, stream_sources, tournament_stream_sources, channels, channel_sources",
+  "source": "inferred from Supabase queries (no SQL in archive)",
+  "outcome": "migrate to Lovable Cloud with RLS",
+  "status": "verified",
+  "next_action": "migration"
+ },
+ {
+  "capability": "records",
+  "source": "existing Supabase project (no export attached)",
+  "outcome": "migrate",
+  "status": "pending",
+  "next_action": "user exports CSV per table"
+ },
+ {
+  "capability": "auth identities (admin accounts)",
+  "source": "Supabase auth email/password",
+  "outcome": "migrate: admin re-creates account; grant admin role",
+  "status": "pending",
+  "next_action": "user signs up on admin page, then admin role granted"
+ },
+ {
+  "capability": "authorization: admin-only writes",
+  "source": "none (unprotected)",
+  "outcome": "user_roles + has_role + RLS",
+  "status": "verified",
+  "next_action": "migration"
+ },
+ {
+  "capability": "external provider: CricAPI currentMatches",
+  "source": "api/Proxy.js (placeholder key) + edge fn Cricket-Sync (source missing)",
+  "outcome": "admin-only server function with CRICAPI_KEY secret",
+  "status": "pending",
+  "next_action": "user adds CRICAPI_KEY secret; then test Sync API"
+ },
+ {
+  "capability": "public endpoint /api/proxy (stream proxy)",
+  "source": "VideoPlayer.tsx",
+  "outcome": "removed: unrestricted proxy not allowed per user",
+  "status": "accepted",
+  "next_action": "none"
+ },
+ {
+  "capability": "video: hls.js + Shaka DASH/DRM + embed",
+  "source": "VideoPlayer.tsx",
+  "outcome": "migrate + fix",
+  "status": "verified",
+  "next_action": "rewrite player"
+ },
+ {
+  "capability": "hosting: Vercel SPA",
+  "source": "vercel.json",
+  "outcome": "replaced by Lovable hosting (TanStack Start)",
+  "status": "pending",
+  "next_action": "user clicks Publish"
+ },
+ {
+  "capability": "verification",
+  "source": "-",
+  "outcome": "browser tests",
+  "status": "verified",
+  "next_action": "test"
+ }
 ]
