@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BackupsRouteImport } from './routes/backups'
+import { Route as CxAdminSecretRouteImport } from './routes/cx-admin-secret'
 import { Route as SportsRouteImport } from './routes/sports'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const BackupsRoute = BackupsRouteImport.update({
   id: '/backups',
   path: '/backups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CxAdminSecretRoute = CxAdminSecretRouteImport.update({
+  id: '/cx-admin-secret',
+  path: '/cx-admin-secret',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SportsRoute = SportsRouteImport.update({
@@ -44,6 +50,7 @@ const WatchIdRoute = WatchIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/backups': typeof BackupsRoute
+  '/cx-admin-secret': typeof CxAdminSecretRoute
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/backups': typeof BackupsRoute
+  '/cx-admin-secret': typeof CxAdminSecretRoute
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
@@ -59,21 +67,42 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/backups': typeof BackupsRoute
+  '/cx-admin-secret': typeof CxAdminSecretRoute
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/backups' | '/sports' | '/channel/$id' | '/watch/$id'
+  fullPaths:
+    | '/'
+    | '/backups'
+    | '/cx-admin-secret'
+    | '/sports'
+    | '/channel/$id'
+    | '/watch/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/backups' | '/sports' | '/channel/$id' | '/watch/$id'
-  id: '__root__' | '/' | '/backups' | '/sports' | '/channel/$id' | '/watch/$id'
+  to:
+    | '/'
+    | '/backups'
+    | '/cx-admin-secret'
+    | '/sports'
+    | '/channel/$id'
+    | '/watch/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/backups'
+    | '/cx-admin-secret'
+    | '/sports'
+    | '/channel/$id'
+    | '/watch/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackupsRoute: typeof BackupsRoute
+  CxAdminSecretRoute: typeof CxAdminSecretRoute
   SportsRoute: typeof SportsRoute
   ChannelIdRoute: typeof ChannelIdRoute
   WatchIdRoute: typeof WatchIdRoute
@@ -93,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/backups'
       fullPath: '/backups'
       preLoaderRoute: typeof BackupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cx-admin-secret': {
+      id: '/cx-admin-secret'
+      path: '/cx-admin-secret'
+      fullPath: '/cx-admin-secret'
+      preLoaderRoute: typeof CxAdminSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sports': {
@@ -122,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackupsRoute: BackupsRoute,
+  CxAdminSecretRoute: CxAdminSecretRoute,
   SportsRoute: SportsRoute,
   ChannelIdRoute: ChannelIdRoute,
   WatchIdRoute: WatchIdRoute,
