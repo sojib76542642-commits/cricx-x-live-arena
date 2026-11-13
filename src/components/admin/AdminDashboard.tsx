@@ -220,7 +220,7 @@ function TournamentsTab({ data, busy, mutate, deleteItem }: TabProps) {
   const [name, setName] = useState("");
 
   async function add() {
-    if (!name.trim()) return toast.error("Enter a tournament name.");
+    if (!name.trim()) { toast.error("Enter a tournament name."); return; }
     const ok = await mutate("Tournament added", () => supabase.from("tournaments").insert({ name: name.trim(), active: true, published: true }));
     if (ok) setName("");
   }
@@ -300,8 +300,8 @@ function MatchesTab({ data, busy, mutate, deleteItem }: TabProps) {
   }, [data.matches, query]);
 
   async function add() {
-    if (!form.home.trim() || !form.away.trim()) return toast.error("Enter both team names.");
-    if (!form.start) return toast.error("Choose a start date and time.");
+    if (!form.home.trim() || !form.away.trim()) { toast.error("Enter both team names."); return; }
+    if (!form.start) { toast.error("Choose a start date and time."); return; }
     const ok = await mutate("Match added", () =>
       supabase.from("matches").insert({
         sport: form.sport.trim() || "Cricket",
@@ -461,9 +461,9 @@ function SourcesTab({ data, busy, mutate, deleteItem }: TabProps) {
 
   async function add() {
     const err = validateSource(draft);
-    if (err) return toast.error(err);
-    if (srcType === "tournament" && !tournamentId) return toast.error("Select a tournament.");
-    if (srcType === "match" && !matchId) return toast.error("Select a match.");
+    if (err) { toast.error(err); return; }
+    if (srcType === "tournament" && !tournamentId) { toast.error("Select a tournament."); return; }
+    if (srcType === "match" && !matchId) { toast.error("Select a match."); return; }
     const row = sourceRow(draft);
     const ok =
       srcType === "tournament"
@@ -567,8 +567,8 @@ function ChannelsTab({ data, busy, mutate, deleteItem }: TabProps) {
   const categories = Array.from(new Set(["Sports", "Cricket", "Football", ...data.channels.map((c) => c.category || "Sports")]));
 
   async function addChannel() {
-    if (!chanName.trim()) return toast.error("Enter channel name.");
-    if (chanLogo.trim() && !/^https?:\/\//i.test(chanLogo.trim())) return toast.error("Logo URL must start with https://");
+    if (!chanName.trim()) { toast.error("Enter channel name."); return; }
+    if (chanLogo.trim() && !/^https?:\/\//i.test(chanLogo.trim())) { toast.error("Logo URL must start with https://"); return; }
     const name = chanName.trim();
     const ok = await mutate("Channel added", () =>
       supabase.from("channels").insert({
@@ -587,8 +587,8 @@ function ChannelsTab({ data, busy, mutate, deleteItem }: TabProps) {
 
   async function addChannelSource() {
     const err = validateSource(draft);
-    if (err) return toast.error(err);
-    if (!channelId) return toast.error("Select a channel.");
+    if (err) { toast.error(err); return; }
+    if (!channelId) { toast.error("Select a channel."); return; }
     const ok = await mutate("Channel source added", () => supabase.from("channel_sources").insert({ ...sourceRow(draft), channel_id: channelId }));
     if (ok) setDraft(emptySource);
   }
