@@ -11,7 +11,16 @@ export default function ChannelCard({ channel }: { channel: Pick<Channel, "id" |
       <div className="cx-channel-art">
         <span className="cx-channel-badge">{channel.category || "Sports"}</span>
         {channel.logo_url && !logoFailed ? (
-          <img src={channel.logo_url} alt={channel.name} loading="lazy" onError={() => setLogoFailed(true)} />
+          <img
+            src={channel.logo_url}
+            alt={channel.name}
+            loading="lazy"
+            onError={() => setLogoFailed(true)}
+            // A server-rendered image can fail before React attaches onError; catch that on mount.
+            ref={(el) => {
+              if (el?.complete && el.naturalWidth === 0) setLogoFailed(true);
+            }}
+          />
         ) : (
           <Tv size={32} />
         )}

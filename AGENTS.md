@@ -37,3 +37,5 @@ use the editor.
 - Time/zone-dependent text renders via `LocalTime`/`useHydrated` to avoid SSR hydration mismatches.
 - Playback engine choice lives in `src/lib/streams.ts` (`playbackModeFor`); `VideoPlayer` lazy-imports hls.js and shaka-player client-side.
 - Keep the original `cx-*` class design system in `src/styles.css`; new UI should reuse those classes and CSS variables.
+- Public match lists collapse copies of one fixture (same teams + kickoff) via `dedupeMatches` with a rank preferring rows that have enabled sources — the old feed saved one fixture under many ids, and admins still see every row.
+- `public.bootstrap_owner_admin` (trigger on auth email confirmation) grants admin only to the owner email and only while no admin exists; all other role grants are manual via SQL, never from the app.
