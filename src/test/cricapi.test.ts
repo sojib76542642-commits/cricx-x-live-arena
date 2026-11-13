@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cricStatus, cricTournament, mapCricApiMatch } from "@/lib/cricapi";
+import { cricStatus, cricTournament, isStaleMatch, mapCricApiMatch } from "@/lib/cricapi";
 
 describe("CricAPI mapping", () => {
   it("marks ended matches completed, started matches live, others upcoming", () => {
@@ -35,5 +35,18 @@ describe("CricAPI mapping", () => {
 
   it("skips items without two teams", () => {
     expect(mapCricApiMatch({ id: "x", teams: ["India"], dateTimeGMT: "2026-11-13T09:30:00" })).toBeNull();
+  });
+});
+
+describe("old match status clean-up", () => {
+  const now = Date.parse("2026-11-13T11:00:00Z");
+  it("marks a T10/T20 match still 'live' 4 days after kickoff as stale", () => {
+    expect(isStaleMatch({ status: "live", start_time: "2026-11-09T13:45:00Z", tournament: "Abu Dhabi T10 League" }, now)).toBe(true);
+  });
+  it("gives a Test match 6 days before treating it as stale", () => {
+    expect(isStaleMatch({ status: "live", start_time: "2026-11-09T04:30:00Z", tournament: "Test Series Pakistan vs Sri Lanka" }, now)).toBe(false);
+  });
+  it("never touches matches already completed or cancelled", () => {
+    expect(isStaleMatch({ status: "cancelled", start_time: "2026-10-01T00:00:00Z", tournament: "T20 League" }, now)).toBe(false);
   });
 });

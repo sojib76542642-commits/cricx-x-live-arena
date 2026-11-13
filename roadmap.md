@@ -10,4 +10,8 @@
 - [x] Import original data (6 tables, UUIDs preserved)
 - [x] Owner admin account active (sanjidsojeeb@gmail.com)
 - [ ] Waiting on user: confirm distribution rights before enabling imported streams
-- [ ] Waiting on user: CricAPI key; dedupe/verify all_channels.csv and Sports_Channels_Details.csv
+- [x] Add T20 League / Senior Womens T20 tournaments; fix channel logos (Commons, TV fallback)
+- [x] Sync marks long-finished live/upcoming matches completed
+- [ ] Waiting on user: CRICAPI_KEY (form declined), then run Sync API to refresh statuses
+- [ ] Waiting on user: dedupe/verify all_channels.csv and Sports_Channels_Details.csv
+- [ ] Deep security scan running (results in Security view)
