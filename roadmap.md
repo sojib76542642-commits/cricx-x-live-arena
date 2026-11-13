@@ -8,6 +8,6 @@
 - [x] README, .env.example, typecheck script, tests
 - [x] Browser verification of all routes
 - [x] Import original data (6 tables, UUIDs preserved)
-- [ ] Waiting on user: sign up at /cx-admin-secret with the owner email (admin is granted on email confirmation)
+- [x] Owner admin account active (sanjidsojeeb@gmail.com)
 - [ ] Waiting on user: confirm distribution rights before enabling imported streams
 - [ ] Waiting on user: CricAPI key; dedupe/verify all_channels.csv and Sports_Channels_Details.csv
