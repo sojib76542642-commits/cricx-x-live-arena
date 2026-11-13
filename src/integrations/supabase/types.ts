@@ -14,16 +14,294 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      channel_sources: {
+        Row: {
+          channel_id: string
+          created_at: string
+          drm_license_url: string | null
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          quality: string | null
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name: string
+          quality?: string | null
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          quality?: string | null
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_sources_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          published: boolean
+          slug: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          published?: boolean
+          slug?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          published?: boolean
+          slug?: string | null
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          away_score: string | null
+          away_team: string
+          away_team_logo_url: string | null
+          created_at: string
+          external_match_id: string | null
+          home_score: string | null
+          home_team: string
+          home_team_logo_url: string | null
+          id: string
+          published: boolean
+          sport: string
+          start_time: string
+          status: string
+          tournament: string
+          updated_at: string
+        }
+        Insert: {
+          away_score?: string | null
+          away_team: string
+          away_team_logo_url?: string | null
+          created_at?: string
+          external_match_id?: string | null
+          home_score?: string | null
+          home_team: string
+          home_team_logo_url?: string | null
+          id?: string
+          published?: boolean
+          sport?: string
+          start_time?: string
+          status?: string
+          tournament?: string
+          updated_at?: string
+        }
+        Update: {
+          away_score?: string | null
+          away_team?: string
+          away_team_logo_url?: string | null
+          created_at?: string
+          external_match_id?: string | null
+          home_score?: string | null
+          home_team?: string
+          home_team_logo_url?: string | null
+          id?: string
+          published?: boolean
+          sport?: string
+          start_time?: string
+          status?: string
+          tournament?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stream_sources: {
+        Row: {
+          created_at: string
+          drm_license_url: string | null
+          enabled: boolean
+          id: string
+          kind: string
+          match_id: string
+          name: string
+          quality: string | null
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          match_id: string
+          name: string
+          quality?: string | null
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          match_id?: string
+          name?: string
+          quality?: string | null
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_sources_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_stream_sources: {
+        Row: {
+          created_at: string
+          drm_license_url: string | null
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          quality: string | null
+          sort_order: number
+          tournament_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name: string
+          quality?: string | null
+          sort_order?: number
+          tournament_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          drm_license_url?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          quality?: string | null
+          sort_order?: number
+          tournament_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_stream_sources_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          published: boolean
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          published?: boolean
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          published?: boolean
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +428,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
