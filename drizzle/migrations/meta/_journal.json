@@ -15,6 +15,13 @@
       "when": 1794566436422,
       "tag": "0001_import_columns_and_owner_admin_bootstrap",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794568505288,
+      "tag": "0002_has_role_caller_only",
+      "breakpoints": true
     }
   ]
 }
