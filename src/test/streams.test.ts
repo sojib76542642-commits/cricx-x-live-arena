@@ -47,6 +47,21 @@ describe("match de-duplication", () => {
     ];
     expect(dedupeMatches(rows)).toHaveLength(1);
   });
+  it("collapses copies of one fixture that the old feed saved under different ids", () => {
+    const rows = [
+      { id: "a", external_match_id: "0.11", home_team: "Pakistan", away_team: "Sri Lanka", start_time: "2026-11-09 04:30:00+00" },
+      { id: "b", external_match_id: "0.22", home_team: "pakistan ", away_team: "Sri Lanka", start_time: "2026-11-09T04:30:00+00:00" },
+      { id: "c", external_match_id: "0.33", home_team: "Pakistan", away_team: "Sri Lanka", start_time: "2026-11-10T04:30:00+00:00" },
+    ];
+    expect(dedupeMatches(rows).map((m) => m.id)).toEqual(["a", "c"]);
+  });
+  it("keeps the copy of a fixture that has stream sources", () => {
+    const rows = [
+      { id: "a", external_match_id: "1", home_team: "A", away_team: "B", start_time: "2026-11-09T04:30:00Z" },
+      { id: "b", external_match_id: "2", home_team: "A", away_team: "B", start_time: "2026-11-09T04:30:00Z" },
+    ];
+    expect(dedupeMatches(rows, (m) => (m.id === "b" ? 1 : 0)).map((m) => m.id)).toEqual(["b"]);
+  });
 });
 
 describe("admin source form", () => {

@@ -44,21 +44,32 @@ function toSource(r: SourceRow): Source {
   return { ...r, kind: (r.kind as SourceKind) ?? "hls" };
 }
 
+/** Prefer the copy of a fixture that has playable sources, then the most recently created one. */
+function rankBySources(counts: Map<string, number>) {
+  return (m: Match) => (counts.get(m.id) ?? 0) * 1e13 + (Date.parse(m.created_at ?? "") || 0);
+}
+
 export const getHomeMatches = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
   const now = Date.now();
   const past = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
   const future = new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await sb
-    .from("matches")
-    .select("*")
-    .eq("published", true)
-    .gte("start_time", past)
-    .lte("start_time", future)
-    .order("start_time", { ascending: true })
-    .limit(500);
+  const [{ data, error }, src] = await Promise.all([
+    sb
+      .from("matches")
+      .select("*")
+      .eq("published", true)
+      .gte("start_time", past)
+      .lte("start_time", future)
+      .order("start_time", { ascending: true })
+      .limit(1000),
+    sb.from("stream_sources").select("match_id").eq("enabled", true),
+  ]);
   if (error) fail("matches", error);
-  return dedupeMatches((data ?? []).map(toMatch));
+  if (src.error) fail("stream sources", src.error);
+  const counts = new Map<string, number>();
+  for (const s of src.data ?? []) counts.set(s.match_id, (counts.get(s.match_id) ?? 0) + 1);
+  return dedupeMatches((data ?? []).map(toMatch), rankBySources(counts));
 });
 
 export const getMatchWithSources = createServerFn({ method: "GET" })
@@ -139,7 +150,7 @@ export const getChannelWithSources = createServerFn({ method: "GET" })
 export const getBackups = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
   const [ms, ss, ts, tss, chs, css] = await Promise.all([
-    sb.from("matches").select("*").eq("published", true).order("start_time").limit(500),
+    sb.from("matches").select("*").eq("published", true).order("start_time").limit(1000),
     sb.from("stream_sources").select("match_id, url").eq("enabled", true),
     sb.from("tournaments").select("id, name").eq("published", true),
     sb.from("tournament_stream_sources").select("tournament_id, url").eq("enabled", true),
@@ -162,7 +173,8 @@ export const getBackups = createServerFn({ method: "GET" }).handler(async () => 
     urlsByTournament.set(s.tournament_id, [...(urlsByTournament.get(s.tournament_id) ?? []), s.url.trim().toLowerCase()]);
   }
 
-  const matches = dedupeMatches((ms.data ?? []).map(toMatch))
+  const ownCounts = new Map([...urlsByMatch].map(([id, set]) => [id, set.size]));
+  const matches = dedupeMatches((ms.data ?? []).map(toMatch), rankBySources(ownCounts))
     .map((m) => {
       const set = new Set(urlsByMatch.get(m.id) ?? []);
       const tId = tIdByName.get(m.tournament.toLowerCase());

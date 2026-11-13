@@ -16,6 +16,7 @@ export type Match = {
   away_team_logo_url: string | null;
   published: boolean;
   external_match_id: string | null;
+  created_at?: string;
 };
 
 export type SourceKind = "hls" | "dash" | "embed";
