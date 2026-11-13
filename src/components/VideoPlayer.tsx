@@ -50,6 +50,10 @@ export default function VideoPlayer({ src, kind, drmLicenseUrl }: Props) {
     video.addEventListener("loadeddata", onReady);
     video.addEventListener("playing", onReady);
     const tryPlay = () => void video.play().catch(() => {});
+    // Safety net: never leave viewers on an endless spinner.
+    const timeout = window.setTimeout(() => {
+      if (!disposed && video.readyState < 2) fail("The stream is taking too long to start. It may be offline — try another server.");
+    }, 30_000);
 
     async function startHls() {
       const { default: Hls } = await import("hls.js");
@@ -70,7 +74,9 @@ export default function VideoPlayer({ src, kind, drmLicenseUrl }: Props) {
         });
         hls.on(Hls.Events.ERROR, (_e, data) => {
           if (disposed || !data.fatal) return;
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRetries < 3) {
+          // Manifest errors were already retried by hls.js (manifestLoadingMaxRetry); give up.
+          const manifestFailed = /manifest/i.test(data.details);
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !manifestFailed && networkRetries < 3) {
             networkRetries++;
             hls.startLoad();
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveries < 2) {
@@ -139,6 +145,7 @@ export default function VideoPlayer({ src, kind, drmLicenseUrl }: Props) {
 
     return () => {
       disposed = true;
+      window.clearTimeout(timeout);
       video.removeEventListener("loadeddata", onReady);
       video.removeEventListener("playing", onReady);
       cleanup?.();
