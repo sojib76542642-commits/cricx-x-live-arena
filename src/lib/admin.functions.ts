@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mapCricApiMatch, type CricApiMatch } from "./cricapi";
+import { isStaleMatch, mapCricApiMatch, type CricApiMatch } from "./cricapi";
 
 export type SyncResult =
-  | { ok: true; fetched: number; inserted: number; updated: number; skipped: number; newTournaments: string[] }
+  | { ok: true; fetched: number; inserted: number; updated: number; skipped: number; finished: number; newTournaments: string[] }
   | { ok: false; error: string };
 
 /**
@@ -96,5 +96,26 @@ export const syncCricketMatches = createServerFn({ method: "POST" })
       inserted = count ?? rows.length;
     }
 
-    return { ok: true, fetched: items.length, inserted, updated, skipped, newTournaments };
+    // Matches the feed no longer reports but that are still marked live/upcoming long after kickoff
+    // (e.g. older imported rows) are marked completed so the site stops showing them as live.
+    let finished = 0;
+    const feedIds = new Set(ids);
+    const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: open } = await supabase
+      .from("matches")
+      .select("id, status, start_time, tournament, external_match_id")
+      .in("status", ["live", "upcoming"])
+      .lt("start_time", cutoff)
+      .limit(1000);
+    const now = Date.now();
+    const staleIds = (open ?? []).filter((m) => !feedIds.has(m.external_match_id ?? "") && isStaleMatch(m, now)).map((m) => m.id);
+    for (let i = 0; i < staleIds.length; i += 100) {
+      const { error, count } = await supabase
+        .from("matches")
+        .update({ status: "completed" }, { count: "exact" })
+        .in("id", staleIds.slice(i, i + 100));
+      if (!error) finished += count ?? 0;
+    }
+
+    return { ok: true, fetched: items.length, inserted, updated, skipped, finished, newTournaments };
   });

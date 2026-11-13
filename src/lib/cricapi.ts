@@ -74,3 +74,17 @@ export function mapCricApiMatch(m: CricApiMatch): MappedMatch | null {
     away_team_logo_url: logo(away),
   };
 }
+
+const MULTI_DAY = /\b(test|first[- ]class|quaid)\b/i;
+
+/**
+ * A stored match still marked live/upcoming long after kickoff, which the feed no longer reports.
+ * Multi-day formats (Tests, first-class) get 6 days; everything else 2 days.
+ */
+export function isStaleMatch(m: { status: string; start_time: string; tournament: string }, now: number): boolean {
+  if (m.status !== "live" && m.status !== "upcoming") return false;
+  const start = Date.parse(m.start_time);
+  if (Number.isNaN(start)) return false;
+  const days = MULTI_DAY.test(m.tournament) ? 6 : 2;
+  return now - start > days * 24 * 60 * 60 * 1000;
+}

@@ -117,7 +117,7 @@ export default function AdminDashboard({ email }: { email: string }) {
         return;
       }
       toast.success(
-        `Sync finished: ${res.inserted} new, ${res.updated} updated, ${res.skipped} skipped (sync off).` +
+        `Sync finished: ${res.inserted} new, ${res.updated} updated, ${res.finished} old matches marked completed, ${res.skipped} skipped (sync off).` +
           (res.newTournaments.length ? ` New tournaments start hidden: ${res.newTournaments.join(", ")}` : ""),
         { duration: 8000 },
       );
@@ -646,7 +646,7 @@ function ChannelsTab({ data, busy, mutate, deleteItem }: TabProps) {
               <div key={c.id} className="cx-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {c.logo_url ? <img src={c.logo_url} width={30} height={30} alt="" style={{ borderRadius: 4, objectFit: "contain" }} /> : <Tv size={24} color="var(--text-muted)" />}
+                    <AdminLogo url={c.logo_url} />
                     <div className="cx-row-main" style={{ minWidth: 0 }}>
                       <b>{c.name}</b>
                       <small>
@@ -687,4 +687,10 @@ function ChannelsTab({ data, busy, mutate, deleteItem }: TabProps) {
       </div>
     </div>
   );
+}
+
+function AdminLogo({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) return <Tv size={24} color="var(--text-muted)" />;
+  return <img src={url} width={30} height={30} alt="" style={{ borderRadius: 4, objectFit: "contain" }} onError={() => setFailed(true)} />;
 }
