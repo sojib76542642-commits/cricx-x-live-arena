@@ -106,11 +106,13 @@ export type Database = {
           home_team_logo_url: string | null
           id: string
           published: boolean
+          source_provider: string | null
           sport: string
           start_time: string
           status: string
           tournament: string
           updated_at: string
+          venue: string | null
         }
         Insert: {
           away_score?: string | null
@@ -123,11 +125,13 @@ export type Database = {
           home_team_logo_url?: string | null
           id?: string
           published?: boolean
+          source_provider?: string | null
           sport?: string
           start_time?: string
           status?: string
           tournament?: string
           updated_at?: string
+          venue?: string | null
         }
         Update: {
           away_score?: string | null
@@ -140,11 +144,13 @@ export type Database = {
           home_team_logo_url?: string | null
           id?: string
           published?: boolean
+          source_provider?: string | null
           sport?: string
           start_time?: string
           status?: string
           tournament?: string
           updated_at?: string
+          venue?: string | null
         }
         Relationships: []
       }
@@ -245,24 +251,36 @@ export type Database = {
       tournaments: {
         Row: {
           active: boolean
+          country: string | null
           created_at: string
           id: string
+          logo_url: string | null
           name: string
           published: boolean
+          season: string | null
+          sport: string | null
         }
         Insert: {
           active?: boolean
+          country?: string | null
           created_at?: string
           id?: string
+          logo_url?: string | null
           name: string
           published?: boolean
+          season?: string | null
+          sport?: string | null
         }
         Update: {
           active?: boolean
+          country?: string | null
           created_at?: string
           id?: string
+          logo_url?: string | null
           name?: string
           published?: boolean
+          season?: string | null
+          sport?: string | null
         }
         Relationships: []
       }

@@ -7,4 +7,7 @@
 - [x] Cricket API sync (server-side key)
 - [x] README, .env.example, typecheck script, tests
 - [x] Browser verification of all routes
-- [ ] Waiting on user: existing data export (CSV per table), CricAPI key, first admin account
+- [x] Import original data (6 tables, UUIDs preserved)
+- [ ] Waiting on user: sign up at /cx-admin-secret with the owner email (admin is granted on email confirmation)
+- [ ] Waiting on user: confirm distribution rights before enabling imported streams
+- [ ] Waiting on user: CricAPI key; dedupe/verify all_channels.csv and Sports_Channels_Details.csv

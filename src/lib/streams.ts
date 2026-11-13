@@ -42,11 +42,32 @@ export function mergeSources(own: Source[], inherited: Source[]): Source[] {
   });
 }
 
-/** Remove duplicate matches (same external id, or same teams + kickoff). */
-export function dedupeMatches<T extends Pick<Match, "external_match_id" | "home_team" | "away_team" | "start_time">>(rows: T[]): T[] {
-  return Array.from(
-    new Map(rows.map((m) => [m.external_match_id || `${m.home_team}-${m.away_team}-${m.start_time}`, m])).values(),
-  );
+type DedupeRow = Pick<Match, "external_match_id" | "home_team" | "away_team" | "start_time">;
+
+/** Same teams at the same kickoff instant = same fixture, whatever id the feed gave it. */
+export function fixtureKey(m: DedupeRow): string {
+  const t = Date.parse(m.start_time);
+  return `${m.home_team.trim().toLowerCase()}|${m.away_team.trim().toLowerCase()}|${Number.isNaN(t) ? m.start_time : t}`;
+}
+
+/**
+ * Remove duplicate matches: same external id, or same fixture (teams + kickoff).
+ * When several rows describe one fixture, the highest `rank` wins (ties keep the first);
+ * list order follows each fixture's first appearance.
+ */
+export function dedupeMatches<T extends DedupeRow>(rows: T[], rank: (m: T) => number = () => 0): T[] {
+  const seenExt = new Set<string>();
+  const byFixture = new Map<string, T>();
+  for (const m of rows) {
+    if (m.external_match_id) {
+      if (seenExt.has(m.external_match_id)) continue;
+      seenExt.add(m.external_match_id);
+    }
+    const key = fixtureKey(m);
+    const current = byFixture.get(key);
+    if (!current || rank(m) > rank(current)) byFixture.set(key, m);
+  }
+  return Array.from(byFixture.values());
 }
 
 export function sourceLabel(source: Source): string {

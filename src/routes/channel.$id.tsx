@@ -54,7 +54,7 @@ function ChannelWatchPage() {
       </button>
 
       <header className="cx-channel-head">
-        {channel.logo_url && !logoFailed && <img src={channel.logo_url} alt={channel.name} onError={() => setLogoFailed(true)} />}
+        {channel.logo_url && !logoFailed && <img src={channel.logo_url} alt={channel.name} onError={() => setLogoFailed(true)} ref={(el) => { if (el?.complete && el.naturalWidth === 0) setLogoFailed(true); }} />}
         <div>
           <div className="cx-channel-meta">
             <span className="cx-badge cx-badge-live">
