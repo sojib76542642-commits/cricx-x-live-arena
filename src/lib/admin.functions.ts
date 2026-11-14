@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Json } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
 import {
   SPORTSCORE_MIN_INTERVAL_MS,
   findStoredCopies,
@@ -86,10 +87,9 @@ export const syncSportScore = createServerFn({ method: "POST" })
     }
   });
 
-type Client = Parameters<Parameters<ReturnType<typeof createServerFn>["handler"]>[0]>[0] extends never
-  ? never
-  : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any;
+type Client = SupabaseClient<Database>;
+type MatchUpdate = Database["public"]["Tables"]["matches"]["Update"];
+type MatchInsert = Database["public"]["Tables"]["matches"]["Insert"];
 
 async function runSync(supabase: Client): Promise<SyncStats> {
   const warnings: string[] = [];
@@ -193,8 +193,8 @@ async function runSync(supabase: Client): Promise<SyncStats> {
   }
 
   // 5. Updates, grouped so identical changes to copies of one fixture go out in one request.
-  const groups = new Map<string, { payload: Record<string, unknown>; ids: string[] }>();
-  const inserts: Record<string, unknown>[] = [];
+  const groups = new Map<string, { payload: MatchUpdate; ids: string[] }>();
+  const inserts: MatchInsert[] = [];
   for (const m of mapped) {
     const found = copies.get(m.key) ?? [];
     if (!found.length) {
@@ -214,7 +214,7 @@ async function runSync(supabase: Client): Promise<SyncStats> {
         home_team_logo_url: m.home_team_logo_url,
         away_team_logo_url: m.away_team_logo_url,
       };
-      inserts.push({ ...values, sport: "Cricket", external_match_id: m.key, source_provider: "sportscore", published: t.published, sync_snapshot: values });
+      inserts.push({ ...values, sport: "Cricket", external_match_id: m.key, source_provider: "sportscore", published: t.published, sync_snapshot: values as Json });
       continue;
     }
     for (const r of found) {
@@ -224,7 +224,7 @@ async function runSync(supabase: Client): Promise<SyncStats> {
         stats.unchanged++;
         continue;
       }
-      const payload = { ...plan.update, sync_snapshot: plan.snapshot };
+      const payload: MatchUpdate = { ...plan.update, sync_snapshot: plan.snapshot as Json };
       const sig = JSON.stringify(payload);
       const g = groups.get(sig) ?? { payload, ids: [] };
       g.ids.push(r.id);
