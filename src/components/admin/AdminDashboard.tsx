@@ -8,7 +8,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { MATCH_STATUSES, type MatchStatus } from "@/lib/types";
-import { syncCricketMatches } from "@/lib/admin.functions";
+import { syncSportScore } from "@/lib/admin.functions";
+import LocalTime from "@/components/LocalTime";
+import { dateShort, timeOnly } from "@/lib/format";
 import SourceFields, { emptySource, sourceRow, validateSource, type SourceDraft } from "./SourceFields";
 
 type T = Database["public"]["Tables"];
@@ -46,13 +48,29 @@ function toLocalInput(iso: string) {
 
 export default function AdminDashboard({ email }: { email: string }) {
   const queryClient = useQueryClient();
-  const runSync = useServerFn(syncCricketMatches);
+  const runSync = useServerFn(syncSportScore);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [data, setData] = useState<Data | null>(null);
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [syncInfo, setSyncInfo] = useState<{ lastSuccess: string | null; lastError: string | null }>({ lastSuccess: null, lastError: null });
+
+  const loadSyncInfo = useCallback(async () => {
+    const { data: runs } = await supabase
+      .from("sync_runs")
+      .select("started_at, finished_at, ok, error")
+      .eq("provider", "sportscore")
+      .order("started_at", { ascending: false })
+      .limit(50);
+    const latest = runs?.[0];
+    const success = runs?.find((r) => r.ok);
+    setSyncInfo({
+      lastSuccess: success?.finished_at ?? success?.started_at ?? null,
+      lastError: latest && !latest.ok && latest.finished_at ? latest.error : null,
+    });
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -83,7 +101,8 @@ export default function AdminDashboard({ email }: { email: string }) {
 
   useEffect(() => {
     void fetchData();
-  }, [fetchData]);
+    void loadSyncInfo();
+  }, [fetchData, loadSyncInfo]);
 
   /** Run a write, report the result, then reload admin data and the public pages' cache. */
   async function mutate(label: string, fn: () => PromiseLike<{ error: { message: string } | null }>) {
@@ -108,18 +127,20 @@ export default function AdminDashboard({ email }: { email: string }) {
     await mutate("Deleted", () => supabase.from(table).delete().eq("id", id));
   }
 
-  async function syncCricket() {
+  async function syncNow() {
     setSyncing(true);
     try {
       const res = await runSync();
       if (!res.ok) {
-        toast.error(res.error);
+        toast.error(res.error, { duration: 8000 });
         return;
       }
       toast.success(
-        `Sync finished: ${res.inserted} new, ${res.updated} updated, ${res.finished} old matches marked completed, ${res.skipped} skipped (sync off).` +
-          (res.newTournaments.length ? ` New tournaments start hidden: ${res.newTournaments.join(", ")}` : ""),
-        { duration: 8000 },
+        `SportScore sync finished: ${res.fetched} matches received, ${res.inserted} new, ${res.updated} updated, ${res.unchanged} already up to date, ${res.skipped} skipped (tournament sync off).` +
+          (res.protectedEdits ? ` ${res.protectedEdits} of your manual edits were kept.` : "") +
+          (res.newTournaments.length ? ` New tournaments start hidden: ${res.newTournaments.join(", ")}.` : "") +
+          (res.warnings.length ? ` Warnings: ${res.warnings.join(" ")}` : ""),
+        { duration: 10000 },
       );
       await fetchData();
       void queryClient.invalidateQueries();
@@ -128,6 +149,7 @@ export default function AdminDashboard({ email }: { email: string }) {
       toast.error("Sync failed. Please try again.");
     } finally {
       setSyncing(false);
+      void loadSyncInfo();
     }
   }
 
@@ -137,10 +159,23 @@ export default function AdminDashboard({ email }: { email: string }) {
         <div>
           <h1>Control Panel</h1>
           <p>Auto-Sync & Stream Management · {email}</p>
+          <p>
+            Last successful SportScore sync:{" "}
+            {syncInfo.lastSuccess ? <LocalTime value={syncInfo.lastSuccess} format={(v) => `${dateShort(v)} · ${timeOnly(v)}`} /> : "never"}
+            {" · "}
+            <a href="https://sportscore.com/" rel="dofollow" title="Sports data by SportScore" className="cx-attribution-link">
+              Powered by SportScore
+            </a>
+          </p>
+          {syncInfo.lastError && (
+            <p className="cx-sync-error" role="status">
+              Last sync failed: {syncInfo.lastError}
+            </p>
+          )}
         </div>
         <div className="cx-admin-actions">
-          <button type="button" onClick={syncCricket} disabled={syncing} className="cx-btn cx-btn-primary">
-            <RefreshCw size={16} className={syncing ? "cx-spin" : ""} /> {syncing ? "Syncing..." : "Sync API"}
+          <button type="button" onClick={syncNow} disabled={syncing} className="cx-btn cx-btn-primary">
+            <RefreshCw size={16} className={syncing ? "cx-spin" : ""} /> {syncing ? "Syncing..." : "SportScore Sync"}
           </button>
           <button type="button" onClick={() => void fetchData()} disabled={loading} className="cx-btn cx-btn-secondary" aria-label="Reload data">
             <RefreshCw size={16} className={loading ? "cx-spin" : ""} />
@@ -252,7 +287,7 @@ function TournamentsTab({ data, busy, mutate, deleteItem }: TabProps) {
           </button>
         </div>
       </div>
-      {data.tournaments.length === 0 && <p className="cx-muted">No tournaments yet. Add one above or run Sync API.</p>}
+      {data.tournaments.length === 0 && <p className="cx-muted">No tournaments yet. Add one above or run SportScore Sync.</p>}
       {data.tournaments.map((t) => (
         <div key={t.id} className="cx-row">
           <div className="cx-row-main">

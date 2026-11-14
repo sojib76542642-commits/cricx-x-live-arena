@@ -40,7 +40,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         </a>
       </aside>
 
-      <main className="cx-main">{children}</main>
+      <main className="cx-main">
+        {children}
+        <footer className="cx-attribution">
+          Live cricket scores and fixtures:{" "}
+          <a href="https://sportscore.com/" rel="dofollow" title="Sports data by SportScore">
+            Powered by SportScore
+          </a>
+        </footer>
+      </main>
 
       <nav className="cx-bottom-nav">
         <Link to="/" className={isActive("/") ? "active" : ""}>

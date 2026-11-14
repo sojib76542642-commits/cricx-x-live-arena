@@ -42,8 +42,8 @@ describe("source merging", () => {
 describe("match de-duplication", () => {
   it("keeps one row per external match id", () => {
     const rows = [
-      { external_match_id: "cricapi:1", home_team: "A", away_team: "B", start_time: "t" },
-      { external_match_id: "cricapi:1", home_team: "A", away_team: "B", start_time: "t" },
+      { external_match_id: "sportscore:1", home_team: "A", away_team: "B", start_time: "t" },
+      { external_match_id: "sportscore:1", home_team: "A", away_team: "B", start_time: "t" },
     ];
     expect(dedupeMatches(rows)).toHaveLength(1);
   });
