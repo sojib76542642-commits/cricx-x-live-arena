@@ -110,6 +110,7 @@ export type Database = {
           sport: string
           start_time: string
           status: string
+          sync_snapshot: Json | null
           tournament: string
           updated_at: string
           venue: string | null
@@ -129,6 +130,7 @@ export type Database = {
           sport?: string
           start_time?: string
           status?: string
+          sync_snapshot?: Json | null
           tournament?: string
           updated_at?: string
           venue?: string | null
@@ -148,6 +150,7 @@ export type Database = {
           sport?: string
           start_time?: string
           status?: string
+          sync_snapshot?: Json | null
           tournament?: string
           updated_at?: string
           venue?: string | null
@@ -200,6 +203,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sync_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          ok: boolean
+          provider: string
+          started_at: string
+          stats: Json | null
+          triggered_by: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          provider?: string
+          started_at?: string
+          stats?: Json | null
+          triggered_by?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          provider?: string
+          started_at?: string
+          stats?: Json | null
+          triggered_by?: string | null
+        }
+        Relationships: []
       }
       tournament_stream_sources: {
         Row: {
