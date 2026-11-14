@@ -297,3 +297,8 @@ img { max-width: 100%; display: block; }
   .cx-admin-grid { grid-template-columns: 1fr 1fr; }
   .cx-channel-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
 }
+
+/* SportScore attribution (required by its free-tier terms: visible, crawlable, dofollow). */
+.cx-attribution { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; text-align: center; }
+.cx-attribution a, .cx-attribution-link { color: var(--primary); font-weight: 600; text-decoration: underline; }
+.cx-sync-error { color: var(--danger) !important; }
