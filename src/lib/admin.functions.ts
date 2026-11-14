@@ -224,7 +224,8 @@ async function runSync(supabase: Client): Promise<SyncStats> {
         stats.unchanged++;
         continue;
       }
-      const payload: MatchUpdate = { ...plan.update, sync_snapshot: plan.snapshot as Json };
+      // Only values SportScore actually supplied end up in plan.update, so none of them are null.
+      const payload = { ...plan.update, sync_snapshot: plan.snapshot as Json } as MatchUpdate;
       const sig = JSON.stringify(payload);
       const g = groups.get(sig) ?? { payload, ids: [] };
       g.ids.push(r.id);
