@@ -15,6 +15,7 @@ import { Route as CxAdminSecretRouteImport } from './routes/cx-admin-secret'
 import { Route as SportsRouteImport } from './routes/sports'
 import { Route as ChannelIdRouteImport } from './routes/channel.$id'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
+import { Route as ApiPublicJobsSportscoreSyncRouteImport } from './routes/api/public/jobs/sportscore-sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,12 @@ const WatchIdRoute = WatchIdRouteImport.update({
   path: '/watch/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsSportscoreSyncRoute =
+  ApiPublicJobsSportscoreSyncRouteImport.update({
+    id: '/api/public/jobs/sportscore-sync',
+    path: '/api/public/jobs/sportscore-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByFullPath {
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/jobs/sportscore-sync': typeof ApiPublicJobsSportscoreSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +70,7 @@ export interface FileRoutesByTo {
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/jobs/sportscore-sync': typeof ApiPublicJobsSportscoreSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +80,7 @@ export interface FileRoutesById {
   '/sports': typeof SportsRoute
   '/channel/$id': typeof ChannelIdRoute
   '/watch/$id': typeof WatchIdRoute
+  '/api/public/jobs/sportscore-sync': typeof ApiPublicJobsSportscoreSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +91,7 @@ export interface FileRouteTypes {
     | '/sports'
     | '/channel/$id'
     | '/watch/$id'
+    | '/api/public/jobs/sportscore-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +100,7 @@ export interface FileRouteTypes {
     | '/sports'
     | '/channel/$id'
     | '/watch/$id'
+    | '/api/public/jobs/sportscore-sync'
   id:
     | '__root__'
     | '/'
@@ -97,6 +109,7 @@ export interface FileRouteTypes {
     | '/sports'
     | '/channel/$id'
     | '/watch/$id'
+    | '/api/public/jobs/sportscore-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +119,7 @@ export interface RootRouteChildren {
   SportsRoute: typeof SportsRoute
   ChannelIdRoute: typeof ChannelIdRoute
   WatchIdRoute: typeof WatchIdRoute
+  ApiPublicJobsSportscoreSyncRoute: typeof ApiPublicJobsSportscoreSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/sportscore-sync': {
+      id: '/api/public/jobs/sportscore-sync'
+      path: '/api/public/jobs/sportscore-sync'
+      fullPath: '/api/public/jobs/sportscore-sync'
+      preLoaderRoute: typeof ApiPublicJobsSportscoreSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +183,7 @@ const rootRouteChildren: RootRouteChildren = {
   SportsRoute: SportsRoute,
   ChannelIdRoute: ChannelIdRoute,
   WatchIdRoute: WatchIdRoute,
+  ApiPublicJobsSportscoreSyncRoute: ApiPublicJobsSportscoreSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
