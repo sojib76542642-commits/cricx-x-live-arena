@@ -76,3 +76,16 @@ export function sourceLabel(source: Source): string {
   if (mode === "dash") return source.drm_license_url ? "DASH · DRM" : "DASH";
   return "HLS";
 }
+
+/** An "upcoming" match whose kickoff passed this long ago is shown as awaiting a result. */
+export const AWAITING_RESULT_AFTER_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Display only: SportScore sometimes keeps a match "upcoming" long after kickoff (e.g. "Abnormal", "Cut in half").
+ * Such matches are listed apart instead of under old dates. The stored status is never changed because of age.
+ */
+export function isAwaitingResult(m: Pick<Match, "status" | "start_time">, now: number): boolean {
+  if (m.status !== "upcoming" && m.status !== "postponed") return false;
+  const t = Date.parse(m.start_time);
+  return Number.isFinite(t) && now - t > AWAITING_RESULT_AFTER_MS;
+}
