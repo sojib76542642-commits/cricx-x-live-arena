@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Clock3 } from "lucide-react";
+import { AWAITING_RESULT_AFTER_MS } from "@/lib/streams";
 
 export default function Countdown({ start }: { start: string }) {
   // null until mounted so server and browser render the same first frame.
@@ -17,6 +18,9 @@ export default function Countdown({ start }: { start: string }) {
     );
   }
   const diff = new Date(start).getTime() - now;
+  if (Number.isFinite(diff) && diff < -AWAITING_RESULT_AFTER_MS) {
+    return <span className="cx-countdown">Awaiting result</span>;
+  }
   if (!Number.isFinite(diff) || diff <= 0) {
     return <span className="cx-countdown">Starting soon</span>;
   }

@@ -12,6 +12,7 @@
 - [ ] Waiting on user: confirm distribution rights before enabling imported streams
 - [x] Add T20 League / Senior Womens T20 tournaments; fix channel logos (Commons, TV fallback)
 - [x] Sync marks long-finished live/upcoming matches completed
-- [ ] Waiting on user: CRICAPI_KEY (form declined), then run Sync API to refresh statuses
+- [x] Match data from SportScore (no key); first sync run as owner admin
+- [x] SportScore sync tests, docs, automatic 5-minute sync job
 - [ ] Waiting on user: dedupe/verify all_channels.csv and Sports_Channels_Details.csv
-- [ ] Deep security scan running (results in Security view)
+- [x] Deep security scan (1 finding fixed)

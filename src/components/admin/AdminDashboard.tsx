@@ -138,7 +138,7 @@ export default function AdminDashboard({ email }: { email: string }) {
       toast.success(
         `SportScore sync finished: ${res.fetched} matches received, ${res.inserted} new, ${res.updated} updated, ${res.unchanged} already up to date, ${res.skipped} skipped (tournament sync off).` +
           (res.protectedEdits ? ` ${res.protectedEdits} of your manual edits were kept.` : "") +
-          (res.newTournaments.length ? ` New tournaments start hidden: ${res.newTournaments.join(", ")}.` : "") +
+          (res.newTournaments.length ? ` New tournaments start hidden: ${res.newTournaments.map((n) => `“${n}”`).join(", ")}.` : "") +
           (res.warnings.length ? ` Warnings: ${res.warnings.join(" ")}` : ""),
         { duration: 10000 },
       );
