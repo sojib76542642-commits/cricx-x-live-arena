@@ -32,14 +32,15 @@ bun run build      # production build
 
 ## Environment variables
 
-See `.env.example`. `VITE_*` values are public and safe in the browser. `CRICAPI_KEY` is a
-server-only secret used by the admin "Sync API" action; it is never sent to the browser.
-No service-role key is used anywhere in the app.
+See `.env.example`. `VITE_*` values are public and safe in the browser. Match data comes from
+SportScore's free public API, which needs **no API key**. The browser never receives a
+service-role key; only the scheduled sync job uses the server's admin client, after the
+platform's cron secret has been verified.
 
 ## Database
 
 Tables: `tournaments`, `matches`, `stream_sources`, `tournament_stream_sources`, `channels`,
-`channel_sources`, `user_roles` (+ `has_role()` function). Schema: `drizzle/migrations/`.
+`channel_sources`, `user_roles` (+ `has_role()` function), `sync_runs` (SportScore sync history, admins only). Schema: `drizzle/migrations/`.
 
 Security rules:
 - Visitors can only **read** published tournaments, matches and channels, and enabled sources of published items.
@@ -50,6 +51,23 @@ Security rules:
 
 1. They create an account on `/cx-admin-secret` ("Create one") and confirm their email.
 2. Add a row to `user_roles` with their user id and role `admin` (Lovable: Cloud → Database → `user_roles`, or ask the Lovable agent).
+
+## Match data (SportScore)
+
+Scores, statuses, kickoff times and competitions come from [SportScore](https://sportscore.com/developers/)
+(free, no key; terms: https://sportscore.com/developers/terms/).
+
+- **Admin → SportScore Sync** pulls live/recent matches, today's and tomorrow's fixtures, and results for
+  past days that still have matches marked live or upcoming. A scheduled job runs the same sync every
+  5 minutes on the published site (`/api/public/jobs/sportscore-sync`, callable only by the platform scheduler).
+- At most one sync per minute (SportScore caches for 60 s). Visitors never call SportScore.
+- No duplicates: each SportScore match gets a stable key (`sportscore:cricket:<slug>:<date>`) protected by a
+  unique index, and existing rows are matched by the same teams and kickoff (either home/away order).
+- Manual edits win: the sync remembers what it last wrote (`matches.sync_snapshot`) and leaves fields you changed alone.
+- Nothing is deleted, and no match is marked completed because of its age. Matches SportScore still lists as
+  upcoming a day after kickoff are shown under "Awaiting result" on the home page.
+- New competitions are added as hidden tournaments; publish them in Admin → Tournaments to show their matches.
+- Every page shows the required "Powered by SportScore" link (`rel="dofollow"`).
 
 ## Streams
 
