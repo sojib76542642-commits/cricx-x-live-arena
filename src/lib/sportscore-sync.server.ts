@@ -4,8 +4,12 @@ import {
   SPORTSCORE_MIN_INTERVAL_MS,
   findStoredCopies,
   mapSportScoreMatch,
+  planCleanup,
   planMatchUpdate,
+  shouldInsert,
   utcDays,
+  windowDays,
+  type CleanupRow,
   type MappedSportScoreMatch,
   type SyncRow,
 } from "./sportscore";
@@ -18,13 +22,18 @@ export type SyncStats = {
   unchanged: number;
   protectedEdits: number;
   skipped: number;
+  /** Finished or long-expired fixtures SportScore sent that were not saved. */
+  ignored: number;
+  removedCompleted: number;
+  removedExpired: number;
+  removedSources: number;
   newTournaments: string[];
   warnings: string[];
 };
 export type SyncResult = ({ ok: true; finishedAt: string } & SyncStats) | { ok: false; error: string; skipped?: boolean };
 
 const DAY = 24 * 60 * 60 * 1000;
-const LOOKBACK_DAYS = 14;
+const LOOKBACK_DAYS = 30;
 const MAX_PAST_DAYS = 10;
 const ROW_COLUMNS =
   "id, external_match_id, sync_snapshot, status, home_score, away_score, start_time, tournament, home_team, away_team, home_team_logo_url, away_team_logo_url";
@@ -87,11 +96,11 @@ async function runSync(supabase: Client): Promise<SyncStats> {
   const warnings: string[] = [];
   const now = Date.now();
   const today = new Date(now).toISOString().slice(0, 10);
-  const tomorrow = new Date(now + DAY).toISOString().slice(0, 10);
 
-  // 1. Live and recent matches (required) + today's/tomorrow's fixtures.
+  // 1. Live and recent matches (required; if this fails the whole run stops and nothing is deleted)
+  //    + fixtures for a rolling 5-day window starting today.
   const items = await fetchSportScore("/api/widget/matches/?sport=cricket&limit=50");
-  const days = [today, tomorrow];
+  const days = windowDays(now);
 
   // 2. Past days that still have matches stored as live/upcoming: get their real results from SportScore.
   const { data: open, error: openErr } = await supabase
@@ -106,14 +115,17 @@ async function runSync(supabase: Client): Promise<SyncStats> {
 
   // Fetched in small parallel batches (the server allows only a few open requests at once); results keep day order.
   const uniqueDays = Array.from(new Set(days));
+  const checkedDays = new Set<string>();
   for (let i = 0; i < uniqueDays.length; i += 4) {
     const batch = uniqueDays.slice(i, i + 4);
     const results = await Promise.allSettled(
       batch.map((day) => fetchSportScore(`/api/v1/fixtures/?sport=cricket&date=${day}&limit=200`)),
     );
     results.forEach((r, j) => {
-      if (r.status === "fulfilled") items.push(...r.value);
-      else warnings.push(`Fixtures for ${batch[j]}: ${r.reason instanceof Error ? r.reason.message : "failed"}`);
+      if (r.status === "fulfilled") {
+        items.push(...r.value);
+        checkedDays.add(batch[j]!);
+      } else warnings.push(`Fixtures for ${batch[j]}: ${r.reason instanceof Error ? r.reason.message : "failed"}`);
     });
   }
 
@@ -131,18 +143,25 @@ async function runSync(supabase: Client): Promise<SyncStats> {
     unchanged: 0,
     protectedEdits: 0,
     skipped: 0,
+    ignored: 0,
+    removedCompleted: 0,
+    removedExpired: 0,
+    removedSources: 0,
     newTournaments: [],
     warnings,
   };
+  // An empty answer is treated as "SportScore unavailable": no cleanup without data.
   if (!mapped.length) return stats;
 
-  // 3. Tournaments: create unknown competitions (sync on, hidden until the admin publishes them).
+  // 3. Tournaments: create unknown competitions (sync on, hidden until the admin publishes them),
+  //    only for matches that may be saved — finished results no longer add tournaments.
   const { data: tournaments, error: tErr } = await supabase.from("tournaments").select("id, name, active, published");
   if (tErr) throw new SportScoreError("Could not read tournaments.");
   const tByName = new Map<string, { active: boolean; published: boolean }>(
     ((tournaments ?? []) as { name: string; active: boolean; published: boolean }[]).map((t) => [t.name.toLowerCase(), t]),
   );
   for (const m of mapped) {
+    if (!shouldInsert(m, now)) continue;
     const name = m.tournament;
     if (tByName.has(name.toLowerCase())) continue;
     const { data: created, error } = await supabase
@@ -195,6 +214,11 @@ async function runSync(supabase: Client): Promise<SyncStats> {
   for (const m of mapped) {
     const found = copies.get(m.key) ?? [];
     if (!found.length) {
+      // Finished (or long-overdue) fixtures are not stored: they would only be deleted again.
+      if (!shouldInsert(m, now)) {
+        stats.ignored++;
+        continue;
+      }
       const t = tByName.get(m.tournament.toLowerCase());
       if (!t?.active) {
         stats.skipped++;
@@ -249,5 +273,47 @@ async function runSync(supabase: Client): Promise<SyncStats> {
     }
     stats.inserted = count ?? inserts.length;
   }
+
+  // 6. Lifecycle cleanup — only after every read, update and insert above succeeded.
+  await cleanup(supabase, now, checkedDays, stats);
   return stats;
+}
+
+/**
+ * Deletes SportScore-confirmed finished matches and expired upcoming ones (rules in planCleanup).
+ * A match's own stream sources go with it (on delete cascade); channel and tournament sources are separate
+ * tables and are never touched. Each delete re-checks the status, so it is safe to run repeatedly.
+ */
+async function cleanup(supabase: Client, now: number, checkedDays: ReadonlySet<string>, stats: SyncStats) {
+  const { data, error } = await supabase
+    .from("matches")
+    .select("id, status, start_time, sync_snapshot")
+    .in("status", ["completed", "cancelled", "upcoming", "postponed"])
+    .not("sync_snapshot", "is", null)
+    .limit(5000);
+  if (error) {
+    stats.warnings.push("Cleanup skipped: could not read stored matches.");
+    return;
+  }
+  const plan = planCleanup((data ?? []) as CleanupRow[], { now, checkedDays });
+  const batches: { ids: string[]; statuses: string[]; field: "removedCompleted" | "removedExpired" }[] = [
+    { ids: plan.finished, statuses: ["completed", "cancelled"], field: "removedCompleted" },
+    { ids: plan.expired, statuses: ["upcoming", "postponed"], field: "removedExpired" },
+  ];
+  for (const b of batches) {
+    for (let i = 0; i < b.ids.length; i += 100) {
+      const ids = b.ids.slice(i, i + 100);
+      const countSources = async () =>
+        (await supabase.from("stream_sources").select("id", { count: "exact", head: true }).in("match_id", ids)).count ?? 0;
+      const before = await countSources();
+      const { data: gone, error: delErr } = await supabase.from("matches").delete().in("id", ids).in("status", b.statuses).select("id");
+      if (delErr) {
+        console.error("[cricx] cleanup delete", delErr.message);
+        stats.warnings.push("Some finished matches could not be removed; the next sync will retry.");
+        return;
+      }
+      stats[b.field] += gone?.length ?? 0;
+      if (before) stats.removedSources += before - (await countSources());
+    }
+  }
 }

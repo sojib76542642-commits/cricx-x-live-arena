@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound } from "@tanstack/react-router";
 import type { Database } from "@/integrations/supabase/types";
 import type { Channel, Match, Source, SourceKind } from "./types";
-import { dedupeMatches, mergeSources } from "./streams";
+import { dedupeMatches, isHomeVisible, mergeSources } from "./streams";
 
 type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 type SourceRow = Row<"stream_sources"> | Row<"tournament_stream_sources"> | Row<"channel_sources">;
@@ -59,6 +59,7 @@ export const getHomeMatches = createServerFn({ method: "GET" }).handler(async ()
       .from("matches")
       .select("*")
       .eq("published", true)
+      .in("status", ["live", "upcoming", "postponed"])
       .gte("start_time", past)
       .lte("start_time", future)
       .order("start_time", { ascending: true })
@@ -69,7 +70,9 @@ export const getHomeMatches = createServerFn({ method: "GET" }).handler(async ()
   if (src.error) fail("stream sources", src.error);
   const counts = new Map<string, number>();
   for (const s of src.data ?? []) counts.set(s.match_id, (counts.get(s.match_id) ?? 0) + 1);
-  return dedupeMatches((data ?? []).map(toMatch), rankBySources(counts));
+  // Only live and still-upcoming matches; results and long-overdue fixtures are not listed.
+  const visible = (data ?? []).map(toMatch).filter((m) => isHomeVisible(m, now));
+  return dedupeMatches(visible, rankBySources(counts));
 });
 
 export const getMatchWithSources = createServerFn({ method: "GET" })

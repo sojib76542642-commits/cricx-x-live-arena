@@ -18,8 +18,8 @@ export const Route = createFileRoute("/api/public/jobs/sportscore-sync")({
         ]);
         const result = await runRecordedSync(supabaseAdmin, null);
         if (result.ok) {
-          const { ok, finishedAt, fetched, inserted, updated, unchanged, skipped, protectedEdits } = result;
-          return Response.json({ ok, finishedAt, fetched, inserted, updated, unchanged, skipped, protectedEdits });
+          const { ok, finishedAt, fetched, inserted, updated, unchanged, skipped, protectedEdits, ignored, removedCompleted, removedExpired, removedSources } = result;
+          return Response.json({ ok, finishedAt, fetched, inserted, updated, unchanged, skipped, protectedEdits, ignored, removedCompleted, removedExpired, removedSources });
         }
         // A run skipped by the once-a-minute limit is not a failure.
         return Response.json({ ok: false, skipped: result.skipped ?? false, error: result.error }, { status: result.skipped ? 200 : 502 });

@@ -5,7 +5,6 @@ import { RefreshCw, Search, Zap, Radio } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { dateKey, dateLong } from "@/lib/format";
 import { homeMatchesQuery } from "@/lib/queries";
-import { isAwaitingResult } from "@/lib/streams";
 import MatchCard, { sportEmoji } from "@/components/MatchCard";
 import Empty from "@/components/Empty";
 import LocalTime from "@/components/LocalTime";
@@ -50,24 +49,22 @@ function HomePage() {
   }, [matches, query, sport]);
 
   const live = filtered.filter((m) => m.status === "live");
-  const upcoming = filtered.filter((m) => m.status === "upcoming" || m.status === "postponed");
-  const completed = filtered.filter((m) => m.status === "completed");
-  // Day grouping and "awaiting result" depend on the visitor's clock and time zone, so they are computed in the browser.
-  const awaiting = useMemo(() => (hydrated ? upcoming.filter((m) => isAwaitingResult(m, Date.now())) : []), [upcoming, hydrated]);
-  const scheduled = useMemo(() => upcoming.filter((m) => !awaiting.includes(m)), [upcoming, awaiting]);
-  const featured = live[0] || scheduled[0] || upcoming[0];
+  // The server sends only live and upcoming matches; finished ones are removed by the sync.
+  const upcoming = useMemo(() => filtered.filter((m) => m.status === "upcoming" || m.status === "postponed"), [filtered]);
+  const featured = live[0] || upcoming[0];
 
+  // Day grouping depends on the visitor's time zone, so it is computed in the browser.
   const upcomingGroups = useMemo(() => {
     if (!hydrated) return [];
     const groups = new Map<string, Match[]>();
-    for (const m of scheduled) {
+    for (const m of upcoming) {
       const key = dateKey(m.start_time);
       groups.set(key, [...(groups.get(key) ?? []), m]);
     }
     return Array.from(groups.values()).sort(
       (a, b) => new Date(a[0]?.start_time ?? 0).getTime() - new Date(b[0]?.start_time ?? 0).getTime(),
     );
-  }, [scheduled, hydrated]);
+  }, [upcoming, hydrated]);
 
   return (
     <div className="cx-home">
@@ -155,34 +152,6 @@ function HomePage() {
           </div>
         </section>
       ))}
-
-      {awaiting.length > 0 && (
-        <section className="cx-section">
-          <header className="cx-section-head">
-            <h2>⏳ Awaiting result</h2>
-            <span>{awaiting.length}</span>
-          </header>
-          <div className="cx-match-grid">
-            {awaiting.map((m) => (
-              <MatchCard key={m.id} match={m} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section className="cx-section">
-          <header className="cx-section-head">
-            <h2>Completed</h2>
-            <span>{completed.length}</span>
-          </header>
-          <div className="cx-match-grid">
-            {completed.map((m) => (
-              <MatchCard key={m.id} match={m} />
-            ))}
-          </div>
-        </section>
-      )}
 
       {filtered.length === 0 &&
         (matches.length === 0 ? (
