@@ -236,3 +236,64 @@ export function findStoredCopies<R extends Pick<SyncRow, "id" | "external_match_
 export function utcDays(isoTimes: string[], limit: number): string[] {
   return Array.from(new Set(isoTimes.map((t) => new Date(t).toISOString().slice(0, 10)))).sort().reverse().slice(0, limit);
 }
+
+const HOUR = 60 * 60 * 1000;
+
+/** Fixtures are fetched for today plus the next days, so upcoming matches cover a rolling 5-day window. */
+export const UPCOMING_WINDOW_DAYS = 5;
+/** An upcoming/postponed match this long past kickoff, still not live per SportScore, is expired and removed. */
+export const EXPIRED_UPCOMING_AFTER_MS = 48 * HOUR;
+
+/** Finished per SportScore ("finished" maps to completed, or cancelled when abandoned). */
+const FINISHED: ReadonlySet<string> = new Set(["completed", "cancelled"]);
+const NOT_STARTED: ReadonlySet<string> = new Set(["upcoming", "postponed"]);
+
+export type CleanupRow = { id: string; status: string; start_time: string; sync_snapshot: unknown };
+
+/**
+ * The status SportScore last reported for this row, but only when the stored status still equals it.
+ * Rows never touched by the sync (manual admin matches) or whose status an admin changed return null.
+ */
+export function confirmedStatus(row: Pick<CleanupRow, "status" | "sync_snapshot">): string | null {
+  const snap = row.sync_snapshot && typeof row.sync_snapshot === "object" ? (row.sync_snapshot as SyncValues) : null;
+  const s = snap?.status;
+  return typeof s === "string" && s === row.status ? s : null;
+}
+
+/**
+ * Which stored matches the sync deletes after a successful run.
+ * - finished: SportScore confirmed completed/cancelled (any kickoff date).
+ * - expired: SportScore still says upcoming/postponed, kickoff is over 48 h ago, and that kickoff day's
+ *   fixtures were fetched successfully in this run (so a failed request never causes a deletion).
+ * Live matches, manual matches and admin-overridden statuses are never deleted.
+ */
+export function planCleanup(rows: CleanupRow[], opts: { now: number; checkedDays: ReadonlySet<string> }) {
+  const finished: string[] = [];
+  const expired: string[] = [];
+  for (const r of rows) {
+    const s = confirmedStatus(r);
+    if (!s) continue;
+    if (FINISHED.has(s)) {
+      finished.push(r.id);
+      continue;
+    }
+    if (!NOT_STARTED.has(s)) continue;
+    const t = Date.parse(r.start_time);
+    if (!Number.isFinite(t) || opts.now - t <= EXPIRED_UPCOMING_AFTER_MS) continue;
+    if (opts.checkedDays.has(new Date(t).toISOString().slice(0, 10))) expired.push(r.id);
+  }
+  return { finished, expired };
+}
+
+/** A SportScore match not yet stored is saved only while it is live or genuinely upcoming. */
+export function shouldInsert(m: Pick<MappedSportScoreMatch, "status" | "start_time">, now: number): boolean {
+  if (m.status && FINISHED.has(m.status)) return false;
+  if (m.status === "live") return true;
+  const t = Date.parse(m.start_time);
+  return Number.isFinite(t) && now - t <= EXPIRED_UPCOMING_AFTER_MS;
+}
+
+/** UTC days (YYYY-MM-DD) from the day of `now` forward. */
+export function windowDays(now: number, count: number = UPCOMING_WINDOW_DAYS): string[] {
+  return Array.from({ length: count }, (_, i) => new Date(now + i * 24 * HOUR).toISOString().slice(0, 10));
+}

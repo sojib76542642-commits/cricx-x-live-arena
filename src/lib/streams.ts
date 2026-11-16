@@ -89,3 +89,10 @@ export function isAwaitingResult(m: Pick<Match, "status" | "start_time">, now: n
   const t = Date.parse(m.start_time);
   return Number.isFinite(t) && now - t > AWAITING_RESULT_AFTER_MS;
 }
+
+/** The home page lists only live and still-upcoming matches (no results, no long-overdue fixtures). */
+export function isHomeVisible(m: Pick<Match, "status" | "start_time">, now: number): boolean {
+  if (m.status === "live") return true;
+  if (m.status !== "upcoming" && m.status !== "postponed") return false;
+  return !isAwaitingResult(m, now);
+}
