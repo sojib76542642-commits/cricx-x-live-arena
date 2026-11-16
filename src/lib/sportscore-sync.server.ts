@@ -303,7 +303,9 @@ async function cleanup(supabase: Client, now: number, checkedDays: ReadonlySet<s
   for (const b of batches) {
     for (let i = 0; i < b.ids.length; i += 100) {
       const ids = b.ids.slice(i, i + 100);
-      const { count: sources } = await supabase.from("stream_sources").select("id", { count: "exact", head: true }).in("match_id", ids);
+      const countSources = async () =>
+        (await supabase.from("stream_sources").select("id", { count: "exact", head: true }).in("match_id", ids)).count ?? 0;
+      const before = await countSources();
       const { data: gone, error: delErr } = await supabase.from("matches").delete().in("id", ids).in("status", b.statuses).select("id");
       if (delErr) {
         console.error("[cricx] cleanup delete", delErr.message);
@@ -311,8 +313,7 @@ async function cleanup(supabase: Client, now: number, checkedDays: ReadonlySet<s
         return;
       }
       stats[b.field] += gone?.length ?? 0;
-      if (gone?.length === ids.length) stats.removedSources += sources ?? 0;
-      else if (gone?.length) stats.removedSources += sources ?? 0; // cascade removed the sources of deleted rows
+      if (before) stats.removedSources += before - (await countSources());
     }
   }
 }
