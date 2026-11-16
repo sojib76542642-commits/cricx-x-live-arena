@@ -4,11 +4,15 @@ import {
   mapSportScoreMatch,
   mapStatus,
   parseScore,
+  planCleanup,
   planMatchUpdate,
+  shouldInsert,
+  windowDays,
+  type CleanupRow,
   type SyncRow,
 } from "@/lib/sportscore";
 import { SportScoreError, fetchSportScore } from "@/lib/sportscore.server";
-import { isAwaitingResult } from "@/lib/streams";
+import { isAwaitingResult, isHomeVisible } from "@/lib/streams";
 
 // Shapes copied from real SportScore responses (fixtures for 2026-11-13 and 2026-11-10).
 const finished = {
@@ -145,5 +149,65 @@ describe("home page grouping", () => {
   });
   it("never moves completed or live matches", () => {
     expect(isAwaitingResult({ status: "live", start_time: "2026-11-10T02:00:00Z" }, now)).toBe(false);
+  });
+});
+
+describe("match lifecycle", () => {
+  const now = Date.parse("2026-11-16T06:00:00Z");
+  const checked = new Set(["2026-11-12", "2026-11-13", "2026-11-16"]);
+  const c = (over: Partial<CleanupRow>): CleanupRow => ({ id: "x", status: "upcoming", start_time: "2026-11-16T10:00:00Z", sync_snapshot: { status: "upcoming" }, ...over });
+  const plan = (rows: CleanupRow[]) => planCleanup(rows, { now, checkedDays: checked });
+
+  it("moves upcoming -> live -> completed only on SportScore's status, then deletes the completed match", () => {
+    const upcoming = row({ status: "upcoming", sync_snapshot: { status: "upcoming" } });
+    const toLive = planMatchUpdate(upcoming, { ...mapSportScoreMatch(finished)!, status: "live" });
+    expect(toLive.update.status).toBe("live");
+    const live = row({ ...toLive.update, sync_snapshot: toLive.snapshot });
+    expect(plan([{ ...live, start_time: live.start_time!, status: "live" }]).finished).toEqual([]);
+    const toDone = planMatchUpdate(live, mapSportScoreMatch(finished)!);
+    expect(toDone.update.status).toBe("completed");
+    const done = { id: "r1", status: "completed", start_time: live.start_time!, sync_snapshot: toDone.snapshot };
+    expect(plan([done]).finished).toEqual(["r1"]);
+  });
+  it("deletes an abandoned (cancelled) match SportScore reported as finished", () => {
+    expect(plan([c({ id: "a", status: "cancelled", sync_snapshot: { status: "cancelled" } })]).finished).toEqual(["a"]);
+  });
+  it("never deletes a live match, however old", () => {
+    expect(plan([c({ status: "live", start_time: "2026-11-01T00:00:00Z", sync_snapshot: { status: "live" } })])).toEqual({ finished: [], expired: [] });
+  });
+  it("keeps a match an admin marked completed while SportScore still says live", () => {
+    expect(plan([c({ status: "completed", sync_snapshot: { status: "live" } })]).finished).toEqual([]);
+  });
+  it("keeps manual matches the sync never touched", () => {
+    expect(plan([c({ status: "completed", sync_snapshot: null }), c({ start_time: "2026-11-12T00:00:00Z", sync_snapshot: null })])).toEqual({ finished: [], expired: [] });
+  });
+  it("removes an upcoming match more than 48 h past kickoff when that day was checked", () => {
+    expect(plan([c({ id: "old", start_time: "2026-11-13T02:00:00Z" })]).expired).toEqual(["old"]);
+  });
+  it("keeps it when that day's SportScore request failed this run", () => {
+    expect(plan([c({ start_time: "2026-11-10T02:00:00Z" })]).expired).toEqual([]);
+  });
+  it("keeps an upcoming match less than 48 h past kickoff", () => {
+    expect(plan([c({ start_time: "2026-11-15T02:00:00Z" })]).expired).toEqual([]);
+  });
+  it("is idempotent: once rows are gone there is nothing left to delete", () => {
+    expect(plan([])).toEqual({ finished: [], expired: [] });
+  });
+  it("does not store finished or long-overdue fixtures, so deleted results never come back", () => {
+    expect(shouldInsert({ status: "completed", start_time: "2026-11-16T02:00:00Z" }, now)).toBe(false);
+    expect(shouldInsert({ status: "cancelled", start_time: "2026-11-16T02:00:00Z" }, now)).toBe(false);
+    expect(shouldInsert({ status: "upcoming", start_time: "2026-11-10T02:00:00Z" }, now)).toBe(false);
+    expect(shouldInsert({ status: "upcoming", start_time: "2026-11-19T02:00:00Z" }, now)).toBe(true);
+    expect(shouldInsert({ status: "live", start_time: "2026-11-12T02:00:00Z" }, now)).toBe(true);
+  });
+  it("fetches fixtures for a rolling 5-day window starting today", () => {
+    expect(windowDays(now)).toEqual(["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20"]);
+  });
+  it("home page lists only live and upcoming matches", () => {
+    expect(isHomeVisible({ status: "live", start_time: "2026-11-15T02:00:00Z" }, now)).toBe(true);
+    expect(isHomeVisible({ status: "upcoming", start_time: "2026-11-17T02:00:00Z" }, now)).toBe(true);
+    expect(isHomeVisible({ status: "completed", start_time: "2026-11-16T02:00:00Z" }, now)).toBe(false);
+    expect(isHomeVisible({ status: "cancelled", start_time: "2026-11-16T02:00:00Z" }, now)).toBe(false);
+    expect(isHomeVisible({ status: "upcoming", start_time: "2026-11-13T02:00:00Z" }, now)).toBe(false);
   });
 });
